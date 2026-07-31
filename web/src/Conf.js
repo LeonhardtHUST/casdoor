@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import * as Cookie from "cookie";
+import {BRAND} from "./brand/brandConfig";
 
 export let DefaultApplication = "app-built-in";
 
@@ -20,7 +21,7 @@ export let ShowGithubCorner = false;
 export let IsDemoMode = false;
 
 export let ForceLanguage = "";
-export let DefaultLanguage = "en";
+export let DefaultLanguage = BRAND.defaultLanguage;
 
 export let StaticBaseUrl = "https://cdn.casbin.org";
 
@@ -35,10 +36,17 @@ export const ThemeDefault = {
 export const CustomFooter = null;
 
 // Blank or null to hide Ai Assistant button
-export let AiAssistantUrl = "https://ai.casbin.com";
+export let AiAssistantUrl = "";
 
 // Maximum number of navbar items before switching from flat to grouped menu
 export let MaxItemsForFlatMenu = 7;
+
+// Leon's Testfield brand settings
+export const ProductName = BRAND.productName;
+export const EnabledLanguages = BRAND.enabledLanguages;
+export const PortalBasePath = BRAND.portalBasePath;
+export const AdminBasePath = BRAND.adminBasePath;
+export const EnableSaaSManagement = BRAND.enableSaaSManagement;
 
 // setConfig updates the frontend configuration from backend
 export function setConfig(config) {
