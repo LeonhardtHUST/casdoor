@@ -34,18 +34,18 @@ spec:
             - sh
             - -c
             - |
-              cat > /work/app.conf <<EOF
-              appname = casdoor
-              httpport = 8000
-              runmode = prod
-              copyrequestbody = true
-              driverName = postgres
-              dataSourceName = "user=casdoor password=${DB_PASSWORD} host=casdoor-postgresql.casdoor.svc.cluster.local port=5432 sslmode=disable dbname=casdoor"
-              dbName = casdoor
-              origin = https://account.leonhardt.tech
-              staticBaseUrl = https://cdn.casbin.org
-              EOF
+              echo 'appname = casdoor' > /work/app.conf
+              echo 'httpport = 8000' >> /work/app.conf
+              echo 'runmode = prod' >> /work/app.conf
+              echo 'copyrequestbody = true' >> /work/app.conf
+              echo 'driverName = postgres' >> /work/app.conf
+              echo "dataSourceName = \"user=casdoor password=$DB_PASSWORD host=casdoor-postgresql.casdoor.svc.cluster.local port=5432 sslmode=disable dbname=casdoor\"" >> /work/app.conf
+              echo 'dbName = casdoor' >> /work/app.conf
+              echo 'origin = https://account.leonhardt.tech' >> /work/app.conf
+              echo 'staticBaseUrl = https://cdn.casbin.org' >> /work/app.conf
               chmod 644 /work/app.conf
+              echo '=== generated app.conf ==='
+              cat /work/app.conf
           env:
             - name: DB_PASSWORD
               valueFrom:
