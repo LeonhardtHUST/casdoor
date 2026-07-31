@@ -43,6 +43,14 @@ spec:
               echo 'dbName = casdoor' >> /work/app.conf
               echo 'origin = https://account.leonhardt.tech' >> /work/app.conf
               echo 'staticBaseUrl = https://cdn.casbin.org' >> /work/app.conf
+              echo 'defaultLanguage = "zh"' >> /work/app.conf
+              echo 'isUsernameLowered = false' >> /work/app.conf
+              echo 'initScore = 0' >> /work/app.conf
+              echo 'verificationCodeTimeout = 10' >> /work/app.conf
+              echo 'maxItemsForFlatMenu = 7' >> /work/app.conf
+              echo 'enableGzip = true' >> /work/app.conf
+              echo 'showGithubCorner = false' >> /work/app.conf
+              echo 'logConfig = {"adapter":"file", "filename": "logs/casdoor.log", "maxdays":99999, "perm":"0770"}' >> /work/app.conf
               chmod 644 /work/app.conf
               echo '=== generated app.conf ==='
               cat /work/app.conf
@@ -68,6 +76,7 @@ spec:
               echo "=== /conf/app.conf ==="
               cat /conf/app.conf
               echo "=== starting server ==="
+              mkdir -p logs 2>/dev/null || true
               exec /server
           ports:
             - containerPort: 8000
