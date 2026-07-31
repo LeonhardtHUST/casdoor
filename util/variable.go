@@ -15,7 +15,7 @@
 package util
 
 var (
-	Version      = "v3.128.0"
-	CommitId     = "2b9a05239da8ea70b8f401ca94a3808ebfd755cf"
+	Version      = "dev"
+	CommitId     = "unknown"
 	CommitOffset = 0
 )
