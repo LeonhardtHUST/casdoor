@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - deployment.yaml
+  - service.yaml
+  - configmap.yaml
+
+# secret.yaml is excluded from GitOps management.
+# Create the Secret out-of-band with real PostgreSQL credentials:
+#   kubectl create secret generic casdoor-secret \
+#     --namespace=casdoor \
+#     --from-literal=postgres-host=casdoor-postgresql \
+#     --from-literal=postgres-port=5432 \
+#     --from-literal=postgres-user=<user> \
+#     --from-literal=postgres-password=<password> \
+#     --from-literal=postgres-database=casdoor
