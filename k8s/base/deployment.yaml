@@ -21,6 +21,9 @@ spec:
         app: casdoor
     spec:
       terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
       containers:
         - name: casdoor
           image: ghcr.io/leonhardthust/casdoor:latest
@@ -31,33 +34,35 @@ spec:
           env:
             - name: RUNNING_IN_DOCKER
               value: "true"
+          securityContext:
+            capabilities:
+              drop:
+                - ALL
           startupProbe:
             httpGet:
               path: /
               port: 8000
             initialDelaySeconds: 5
-            periodSeconds: 10
+            periodSeconds: 5
             failureThreshold: 30
           livenessProbe:
             httpGet:
               path: /
               port: 8000
-            initialDelaySeconds: 15
-            periodSeconds: 20
-            timeoutSeconds: 5
+            initialDelaySeconds: 30
+            periodSeconds: 15
             failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /
               port: 8000
             initialDelaySeconds: 5
-            periodSeconds: 10
-            timeoutSeconds: 3
+            periodSeconds: 5
             failureThreshold: 3
           resources:
             requests:
-              cpu: 100m
-              memory: 128Mi
+              cpu: 50m
+              memory: 96Mi
             limits:
               cpu: 500m
               memory: 512Mi
@@ -65,7 +70,12 @@ spec:
             - name: conf
               mountPath: /conf
               readOnly: true
+            - name: data
+              mountPath: /data
       volumes:
         - name: conf
           configMap:
-            name: casdoor-config
+            name: casdoor-conf
+        - name: data
+          persistentVolumeClaim:
+            claimName: casdoor-data

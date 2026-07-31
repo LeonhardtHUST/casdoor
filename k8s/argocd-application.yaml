@@ -29,3 +29,11 @@ spec:
         duration: 5s
         factor: 2
         maxDuration: 3m
+  ignoreDifferences:
+    # ConfigMap casdoor-conf contains the real DB password in dataSourceName.
+    # The Git version has a placeholder; ArgoCD should not overwrite the live value.
+    - group: ""
+      kind: ConfigMap
+      name: casdoor-conf
+      jsonPointers:
+        - /data/app.conf
