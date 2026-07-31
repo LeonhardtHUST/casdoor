@@ -21,8 +21,7 @@ import {StyleProvider, legacyLogicalPropertiesTransformer} from "@ant-design/css
 import {GithubOutlined, InfoCircleFilled, ShareAltOutlined} from "@ant-design/icons";
 import {Alert, Button, ConfigProvider, Drawer, FloatButton, Layout, Result, Tooltip} from "antd";
 import {AiDots} from "./common/Loading";
-import {Route, Switch, withRouter} from "react-router-dom";
-import CustomGithubCorner from "./common/CustomGithubCorner";
+import {Redirect, Route, Switch, withRouter} from "react-router-dom";
 import CustomHead from "./basic/CustomHead";
 import * as Conf from "./Conf";
 import {shadcnDarkThemeComponents, shadcnDarkThemeToken, shadcnThemeComponents, shadcnThemeToken} from "./shadcnTheme";
@@ -36,38 +35,20 @@ import TelegramLogin from "./auth/TelegramLogin";
 import i18next from "i18next";
 import {withTranslation} from "react-i18next";
 const ManagementPage = lazy(() => import("./ManagementPage"));
+const PortalLayout = lazy(() => import("./portal/PortalLayout"));
+const AdminEntry = lazy(() => import("./admin/AdminEntry"));
+const DisabledFeaturePage = lazy(() => import("./admin/DisabledFeaturePage"));
 const {Footer, Content} = Layout;
 
 import {setTwoToneColor} from "@ant-design/icons";
 import * as ApplicationBackend from "./backend/ApplicationBackend";
 import * as Cookie from "cookie";
+import * as RoutePolicy from "./routing/routePolicy";
+import * as Guards from "./routing/Guards";
 
-// Ant Design locale imports
+// Ant Design locale imports - Leon's Testfield: only zh and en
 import enUS from "antd/locale/en_US";
 import zhCN from "antd/locale/zh_CN";
-import zhTW from "antd/locale/zh_TW";
-import esES from "antd/locale/es_ES";
-import frFR from "antd/locale/fr_FR";
-import deDE from "antd/locale/de_DE";
-import idID from "antd/locale/id_ID";
-import jaJP from "antd/locale/ja_JP";
-import koKR from "antd/locale/ko_KR";
-import ruRU from "antd/locale/ru_RU";
-import viVN from "antd/locale/vi_VN";
-import ptBR from "antd/locale/pt_BR";
-import itIT from "antd/locale/it_IT";
-import msMY from "antd/locale/ms_MY";
-import trTR from "antd/locale/tr_TR";
-import arEG from "antd/locale/ar_EG";
-import heIL from "antd/locale/he_IL";
-import nlNL from "antd/locale/nl_NL";
-import plPL from "antd/locale/pl_PL";
-import fiFI from "antd/locale/fi_FI";
-import svSE from "antd/locale/sv_SE";
-import ukUA from "antd/locale/uk_UA";
-import faIR from "antd/locale/fa_IR";
-import csCZ from "antd/locale/cs_CZ";
-import skSK from "antd/locale/sk_SK";
 
 setTwoToneColor("rgb(87,52,211)");
 
@@ -75,33 +56,8 @@ function getAntdLocale(language) {
   const localeMap = {
     "en": enUS,
     "zh": zhCN,
-    "zh-tw": zhTW,
-    "es": esES,
-    "fr": frFR,
-    "de": deDE,
-    "id": idID,
-    "ja": jaJP,
-    "ko": koKR,
-    "ru": ruRU,
-    "vi": viVN,
-    "pt": ptBR,
-    "it": itIT,
-    "ms": msMY,
-    "tr": trTR,
-    "ar": arEG,
-    "he": heIL,
-    "nl": nlNL,
-    "pl": plPL,
-    "fi": fiFI,
-    "sv": svSE,
-    "uk": ukUA,
-    "fa": faIR,
-    "cs": csCZ,
-    "sk": skSK,
-    "kk": ruRU, // Use Russian for Kazakh as antd doesn't have Kazakh
-    "az": trTR, // Use Turkish for Azerbaijani as they're similar
   };
-  return localeMap[language] || enUS;
+  return localeMap[language] || zhCN;
 }
 
 class App extends Component {
@@ -163,7 +119,7 @@ class App extends Component {
     }
   }
 
-  shouldFlattenMenu() {
+  shouldFlattenMenu(uri) {
     const organization = this.state.account?.organization;
     const navItems = Setting.isLocalAdminUser(this.state.account) ? organization?.navItems : (organization?.userNavItems ?? []);
 
@@ -172,8 +128,7 @@ class App extends Component {
       return false;
     }
 
-    // Count how many valid menu items would be visible
-    // Filter out any invalid or non-existent menu items
+    // Count how many valid menu items would be visible (excluding SaaS routes)
     const validMenuItems = [
       "/", "/shortcuts", "/apps", // Home group
       "/organizations", "/groups", "/users", "/invitations", // User Management
@@ -181,8 +136,7 @@ class App extends Component {
       "/roles", "/permissions", "/models", "/adapters", "/enforcers", // Authorization
       "/agents", "/servers", "/server-store", "/entries", "/sites", "/rules", // LLM AI
       "/sessions", "/records", "/tokens", "/verifications", // Auditing
-      "/product-store", "/products", "/coupons", "/cart", "/orders", "/payments", "/plans", "/pricings", "/subscriptions", "/transactions", // Business
-      "/sysinfo", "/forms", "/syncers", "/webhooks", "/webhook-events", "/tickets", "/swagger", // Admin
+      "/sysinfo", "/forms", "/syncers", "/webhooks", "/webhook-events", "/tickets", // Admin
     ];
 
     const count = navItems.filter(item => validMenuItems.includes(item)).length;
@@ -303,35 +257,38 @@ class App extends Component {
       uri: uri,
     });
 
+    // Strip /admin and /portal prefixes for menu key matching
+    const normalizedUri = uri.replace(/^\/admin/, "").replace(/^\/portal/, "") || "/";
+
     // Check if menu should be flattened and use appropriate key selection
-    if (this.shouldFlattenMenu()) {
-      const selectedKey = this.getSelectedMenuKeyForFlatMenu(uri);
+    if (this.shouldFlattenMenu(normalizedUri)) {
+      const selectedKey = this.getSelectedMenuKeyForFlatMenu(normalizedUri);
       this.setState({selectedMenuKey: selectedKey});
       return;
     }
 
     // Original logic for grouped menu
-    if (uri === "/" || uri.includes("/shortcuts") || uri.includes("/apps")) {
+    if (normalizedUri === "/" || normalizedUri.includes("/shortcuts") || normalizedUri.includes("/apps")) {
       this.setState({selectedMenuKey: "/home"});
-    } else if (uri.includes("/organizations") || uri.includes("/trees") || uri.includes("/groups") || uri.includes("/users") || uri.includes("/invitations")) {
+    } else if (normalizedUri.includes("/organizations") || normalizedUri.includes("/trees") || normalizedUri.includes("/groups") || normalizedUri.includes("/users") || normalizedUri.includes("/invitations")) {
       this.setState({selectedMenuKey: "/orgs"});
-    } else if (uri.includes("/applications") || uri.includes("/providers") || uri.includes("/resources") || uri.includes("/certs") || uri.includes("/keys")) {
+    } else if (normalizedUri.includes("/applications") || normalizedUri.includes("/providers") || normalizedUri.includes("/resources") || normalizedUri.includes("/certs") || normalizedUri.includes("/keys")) {
       this.setState({selectedMenuKey: "/identity"});
-    } else if (uri.includes("/agents") || uri.includes("/servers") || uri.includes("/server-store") || uri.includes("/entries") || uri.includes("/sites") || uri.includes("/rules")) {
+    } else if (normalizedUri.includes("/agents") || normalizedUri.includes("/servers") || normalizedUri.includes("/server-store") || normalizedUri.includes("/entries") || normalizedUri.includes("/sites") || normalizedUri.includes("/rules")) {
       this.setState({selectedMenuKey: "/gateway"});
-    } else if (uri.includes("/roles") || uri.includes("/permissions") || uri.includes("/models") || uri.includes("/adapters") || uri.includes("/enforcers")) {
+    } else if (normalizedUri.includes("/roles") || normalizedUri.includes("/permissions") || normalizedUri.includes("/models") || normalizedUri.includes("/adapters") || normalizedUri.includes("/enforcers")) {
       this.setState({selectedMenuKey: "/auth"});
-    } else if (uri.includes("/records") || uri.includes("/tokens") || uri.includes("/sessions") || uri.includes("/verifications")) {
+    } else if (normalizedUri.includes("/records") || normalizedUri.includes("/tokens") || normalizedUri.includes("/sessions") || normalizedUri.includes("/verifications")) {
       this.setState({selectedMenuKey: "/logs"});
-    } else if (uri.includes("/product-store") || uri.includes("/products") || uri.includes("/orders") || uri.includes("/payments") || uri.includes("/plans") || uri.includes("/pricings") || uri.includes("/subscriptions") || uri.includes("/transactions")) {
+    } else if (normalizedUri.includes("/product-store") || normalizedUri.includes("/products") || normalizedUri.includes("/orders") || normalizedUri.includes("/payments") || normalizedUri.includes("/plans") || normalizedUri.includes("/pricings") || normalizedUri.includes("/subscriptions") || normalizedUri.includes("/transactions")) {
       this.setState({selectedMenuKey: "/business"});
-    } else if (uri.includes("/sysinfo") || uri.includes("/forms") || uri.includes("/syncers") || uri.includes("/webhooks") || uri.includes("/webhook-events") || uri.includes("/tickets")) {
+    } else if (normalizedUri.includes("/sysinfo") || normalizedUri.includes("/forms") || normalizedUri.includes("/syncers") || normalizedUri.includes("/webhooks") || normalizedUri.includes("/webhook-events") || normalizedUri.includes("/tickets")) {
       this.setState({selectedMenuKey: "/admin"});
-    } else if (uri.includes("/signup")) {
+    } else if (normalizedUri.includes("/signup")) {
       this.setState({selectedMenuKey: "/signup"});
-    } else if (uri.includes("/login")) {
+    } else if (normalizedUri.includes("/login")) {
       this.setState({selectedMenuKey: "/login"});
-    } else if (uri.includes("/result")) {
+    } else if (normalizedUri.includes("/result")) {
       this.setState({selectedMenuKey: "/result"});
     } else {
       this.setState({selectedMenuKey: -1});
@@ -667,53 +624,139 @@ class App extends Component {
     }
     return (
       <React.Fragment>
-        {/* { */}
-        {/*   this.renderBanner() */}
-        {/* } */}
         <FloatButton.BackTop />
-        <CustomGithubCorner />
         {
           <Suspense fallback={null}>
             <Layout id="parent-area">
-              <ManagementPage
-                account={this.state.account}
-                application={this.state.application}
-                uri={this.state.uri}
-                themeData={this.state.themeData}
-                themeAlgorithm={this.state.themeAlgorithm}
-                selectedMenuKey={this.state.selectedMenuKey}
-                requiredEnableMfa={this.state.requiredEnableMfa}
-                menuVisible={this.state.menuVisible}
-                logo={this.state.logo}
-                onChangeTheme={this.setTheme}
-                onClick={this.onClick}
-                onfinish={() => {
-                  this.setState({requiredEnableMfa: false});
-                }}
-                openAiAssistant={() => {
-                  this.setState({
-                    isAiAssistantOpen: true,
-                  });
-                }}
-                setLogoAndThemeAlgorithm={(nextThemeAlgorithm) => {
-                  this.setState({
-                    themeAlgorithm: nextThemeAlgorithm,
-                    logo: this.getLogo(nextThemeAlgorithm),
-                  });
-                  localStorage.setItem("themeAlgorithm", JSON.stringify(nextThemeAlgorithm));
-                }}
-                setLogoutState={() => {
-                  this.setState({
-                    account: null,
-                  });
-                }}
-              />
-              {
-                this.renderFooter()
-              }
-              {
-                this.renderAiAssistant()
-              }
+              <Switch>
+                {/* Root redirect */}
+                <Guards.RootRedirect account={this.state.account} location={this.props.location}>
+                  <Route exact path="/" render={() => null} />
+                </Guards.RootRedirect>
+
+                {/* Portal routes */}
+                <Route path="/portal" render={(rp) =>
+                  <Guards.PortalGuard account={this.state.account} location={rp.location}>
+                    <PortalLayout
+                      account={this.state.account}
+                      application={this.state.application}
+                      uri={this.state.uri}
+                      themeData={this.state.themeData}
+                      themeAlgorithm={this.state.themeAlgorithm}
+                      requiredEnableMfa={this.state.requiredEnableMfa}
+                      logo={this.state.logo}
+                      onChangeTheme={this.setTheme}
+                      onClick={this.onClick}
+                      onfinish={() => {
+                        this.setState({requiredEnableMfa: false});
+                      }}
+                      setLogoAndThemeAlgorithm={(nextThemeAlgorithm) => {
+                        this.setState({
+                          themeAlgorithm: nextThemeAlgorithm,
+                          logo: this.getLogo(nextThemeAlgorithm),
+                        });
+                        localStorage.setItem("themeAlgorithm", JSON.stringify(nextThemeAlgorithm));
+                      }}
+                      setLogoutState={() => {
+                        this.setState({account: null});
+                      }}
+                      history={rp.history}
+                      location={rp.location}
+                    />
+                  </Guards.PortalGuard>
+                } />
+
+                {/* Admin routes */}
+                <Route path="/admin" render={(rp) =>
+                  <Guards.AdminGuard account={this.state.account} location={rp.location}>
+                    <AdminEntry
+                      account={this.state.account}
+                      application={this.state.application}
+                      uri={this.state.uri}
+                      themeData={this.state.themeData}
+                      themeAlgorithm={this.state.themeAlgorithm}
+                      selectedMenuKey={this.state.selectedMenuKey}
+                      requiredEnableMfa={this.state.requiredEnableMfa}
+                      menuVisible={this.state.menuVisible}
+                      logo={this.state.logo}
+                      onChangeTheme={this.setTheme}
+                      onClick={this.onClick}
+                      onfinish={() => {
+                        this.setState({requiredEnableMfa: false});
+                      }}
+                      openAiAssistant={() => {
+                        this.setState({isAiAssistantOpen: true});
+                      }}
+                      setLogoAndThemeAlgorithm={(nextThemeAlgorithm) => {
+                        this.setState({
+                          themeAlgorithm: nextThemeAlgorithm,
+                          logo: this.getLogo(nextThemeAlgorithm),
+                        });
+                        localStorage.setItem("themeAlgorithm", JSON.stringify(nextThemeAlgorithm));
+                      }}
+                      setLogoutState={() => {
+                        this.setState({account: null});
+                      }}
+                      history={rp.history}
+                      location={rp.location}
+                    />
+                  </Guards.AdminGuard>
+                } />
+
+                {/* SaaS disabled routes */}
+                {RoutePolicy.SAAS_ROUTES.map(route => (
+                  <Route key={route} path={route} render={() =>
+                    <DisabledFeaturePage account={this.state.account} history={this.props.history} />
+                  } />
+                ))}
+
+                {/* Legacy admin route redirects */}
+                {Object.entries(RoutePolicy.LEGACY_ADMIN_ROUTE_MAP).map(([oldPath, newPath]) => (
+                  <Route key={oldPath} exact path={oldPath} render={() => {
+                    if (!this.state.account) {
+                      const redirectUrl = encodeURIComponent(oldPath);
+                      return <Redirect to={`/login?returnUrl=${redirectUrl}`} />;
+                    }
+                    if (!RoutePolicy.isGlobalAdmin(this.state.account)) {
+                      return <Redirect to={Conf.PortalBasePath} />;
+                    }
+                    return <Redirect to={newPath} />;
+                  }} />
+                ))}
+
+                {/* Fallback to original ManagementPage for non-prefixed paths */}
+                <Route path="" render={() =>
+                  <ManagementPage
+                    account={this.state.account}
+                    application={this.state.application}
+                    uri={this.state.uri}
+                    themeData={this.state.themeData}
+                    themeAlgorithm={this.state.themeAlgorithm}
+                    selectedMenuKey={this.state.selectedMenuKey}
+                    requiredEnableMfa={this.state.requiredEnableMfa}
+                    menuVisible={this.state.menuVisible}
+                    logo={this.state.logo}
+                    onChangeTheme={this.setTheme}
+                    onClick={this.onClick}
+                    onfinish={() => {
+                      this.setState({requiredEnableMfa: false});
+                    }}
+                    openAiAssistant={() => {
+                      this.setState({isAiAssistantOpen: true});
+                    }}
+                    setLogoAndThemeAlgorithm={(nextThemeAlgorithm) => {
+                      this.setState({
+                        themeAlgorithm: nextThemeAlgorithm,
+                        logo: this.getLogo(nextThemeAlgorithm),
+                      });
+                      localStorage.setItem("themeAlgorithm", JSON.stringify(nextThemeAlgorithm));
+                    }}
+                    setLogoutState={() => {
+                      this.setState({account: null});
+                    }}
+                  />
+                } />
+              </Switch>
             </Layout>
           </Suspense>
         }
@@ -752,10 +795,11 @@ class App extends Component {
       <React.Fragment>
         {(this.state.account === undefined || this.state.account === null) ?
           <Helmet>
+            <title>{Conf.ProductName}</title>
             <link rel="icon" href={"https://cdn.casdoor.com/static/favicon.png"} />
           </Helmet> :
           <Helmet>
-            <title>{this.state.account.organization?.displayName}</title>
+            <title>{Conf.ProductName}</title>
             <link rel="icon" href={this.state.account.organization?.favicon} />
           </Helmet>
         }
