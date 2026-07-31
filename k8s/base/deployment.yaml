@@ -59,6 +59,16 @@ spec:
         - name: casdoor
           image: ghcr.io/leonhardthust/casdoor:latest
           imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "=== /conf/ contents ==="
+              ls -la /conf/
+              echo "=== /conf/app.conf ==="
+              cat /conf/app.conf
+              echo "=== starting server ==="
+              exec /server
           ports:
             - containerPort: 8000
               protocol: TCP
