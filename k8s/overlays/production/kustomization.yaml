@@ -8,4 +8,4 @@ resources:
 
 images:
   - name: ghcr.io/leonhardthust/casdoor
-    newTag: latest
+    newTag: sha-83bdfd8
