@@ -16,6 +16,7 @@ import i18n from "i18next";
 import * as Conf from "./Conf";
 import {initReactI18next} from "react-i18next";
 import en from "./locales/en/data.json";
+import {BRAND} from "./brand/brandConfig";
 
 // Load backend-provided frontend config before language detection runs.
 Conf.initConfigFromCookie();
@@ -51,10 +52,14 @@ function initLanguage() {
     if (Conf.ForceLanguage !== "") {
       language = Conf.ForceLanguage;
     } else {
-      const supportedLanguages = ["en", "zh", "es", "fr", "de", "id", "ja", "ko", "ru", "vi", "pt", "it", "ms", "tr", "ar", "he", "nl", "pl", "fi", "sv", "uk", "kk", "fa", "cs", "sk", "az"];
       const baseLanguage = navigator.language.split("-")[0];
-      language = supportedLanguages.includes(baseLanguage) ? baseLanguage : Conf.DefaultLanguage;
+      language = BRAND.enabledLanguages.includes(baseLanguage) ? baseLanguage : Conf.DefaultLanguage;
     }
+  }
+
+  // Fallback unsupported languages to default
+  if (!BRAND.enabledLanguages.includes(language)) {
+    language = Conf.DefaultLanguage;
   }
 
   return language;
@@ -69,7 +74,7 @@ i18n.use(resourcesToBackend(async(language, namespace) => {
   .init({
     lng: initLanguage(),
     ns: Object.keys(en),
-    fallbackLng: "en",
+    fallbackLng: "zh",
 
     keySeparator: false,
 

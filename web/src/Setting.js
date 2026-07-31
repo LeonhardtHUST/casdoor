@@ -40,16 +40,7 @@ export const SEARCH_DEBOUNCE_MS = 300;
 
 export const Countries = [
   {label: "English", key: "en", country: "US", alt: "English"},
-  {label: "Español", key: "es", country: "ES", alt: "Español"},
-  {label: "Français", key: "fr", country: "FR", alt: "Français"},
-  {label: "Deutsch", key: "de", country: "DE", alt: "Deutsch"},
-  {label: "日本語", key: "ja", country: "JP", alt: "日本語"},
   {label: "中文", key: "zh", country: "CN", alt: "中文"},
-  {label: "TiếngViệt", key: "vi", country: "VN", alt: "TiếngViệt"},
-  {label: "Português", key: "pt", country: "PT", alt: "Português"},
-  {label: "Türkçe", key: "tr", country: "TR", alt: "Türkçe"},
-  {label: "Polski", key: "pl", country: "PL", alt: "Polski"},
-  {label: "Українська", key: "uk", country: "UA", alt: "Українська"},
 ];
 
 export function getThemeData(organization, application) {
@@ -1050,6 +1041,10 @@ export function isAdminUser(account) {
   return account.owner === "built-in";
 }
 
+export function isGlobalAdminUser(account) {
+  return isAdminUser(account);
+}
+
 export function isLocalAdminUser(account) {
   if (account === undefined || account === null) {
     return false;
@@ -1221,12 +1216,14 @@ export function getLanguageText(text) {
 }
 
 export function getLanguage() {
-  return (i18next.language !== undefined && i18next.language !== null && i18next.language !== "" && i18next.language !== "null") ? i18next.language : Conf.DefaultLanguage;
+  const lang = (i18next.language !== undefined && i18next.language !== null && i18next.language !== "" && i18next.language !== "null") ? i18next.language : Conf.DefaultLanguage;
+  return Conf.EnabledLanguages.includes(lang) ? lang : Conf.DefaultLanguage;
 }
 
 export function setLanguage(language) {
-  localStorage.setItem("language", language);
-  i18next.changeLanguage(language);
+  const targetLang = Conf.EnabledLanguages.includes(language) ? language : Conf.DefaultLanguage;
+  localStorage.setItem("language", targetLang);
+  i18next.changeLanguage(targetLang);
 }
 
 export function getAcceptLanguage() {
