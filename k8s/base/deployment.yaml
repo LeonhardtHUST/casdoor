@@ -52,8 +52,6 @@ spec:
               echo 'showGithubCorner = false' >> /work/app.conf
               echo 'logConfig = {"adapter":"console"}' >> /work/app.conf
               chmod 644 /work/app.conf
-              echo '=== generated app.conf ==='
-              cat /work/app.conf
           env:
             - name: DB_PASSWORD
               valueFrom:
