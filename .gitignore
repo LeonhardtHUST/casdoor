@@ -39,3 +39,5 @@ server
 
 web/cypress/videos/
 web/cypress/screenshots/
+
+.agent/
