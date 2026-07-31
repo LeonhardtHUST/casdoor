@@ -629,10 +629,11 @@ class App extends Component {
           <Suspense fallback={null}>
             <Layout id="parent-area">
               <Switch>
-                {/* Root redirect */}
-                <Guards.RootRedirect account={this.state.account} location={this.props.location}>
-                  <Route exact path="/" render={() => null} />
-                </Guards.RootRedirect>
+                {/* Root redirect - only for "/" path */}
+                <Route exact path="/" render={() => {
+                  const redirectPath = RoutePolicy.getRootRedirect(this.state.account);
+                  return redirectPath ? <Redirect to={redirectPath} /> : null;
+                }} />
 
                 {/* Portal routes */}
                 <Route path="/portal" render={(rp) =>
