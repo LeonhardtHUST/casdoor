@@ -24,6 +24,37 @@ spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
+      initContainers:
+        - name: init-config
+          image: busybox:1.36
+          securityContext:
+            runAsNonRoot: false
+            runAsUser: 0
+          command:
+            - sh
+            - -c
+            - |
+              cat > /work/app.conf <<EOF
+              appname = casdoor
+              httpport = 8000
+              runmode = prod
+              copyrequestbody = true
+              driverName = postgres
+              dataSourceName = "user=casdoor password=${DB_PASSWORD} host=casdoor-postgresql.casdoor.svc.cluster.local port=5432 sslmode=disable dbname=casdoor"
+              dbName = casdoor
+              origin = https://account.leonhardt.tech
+              staticBaseUrl = https://cdn.casbin.org
+              EOF
+              chmod 644 /work/app.conf
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: casdoor-postgresql
+                  key: password
+          volumeMounts:
+            - name: conf-generated
+              mountPath: /work
       containers:
         - name: casdoor
           image: ghcr.io/leonhardthust/casdoor:latest
@@ -67,15 +98,14 @@ spec:
               cpu: 500m
               memory: 512Mi
           volumeMounts:
-            - name: conf
+            - name: conf-generated
               mountPath: /conf
               readOnly: true
             - name: data
               mountPath: /data
       volumes:
-        - name: conf
-          configMap:
-            name: casdoor-conf
+        - name: conf-generated
+          emptyDir: {}
         - name: data
           persistentVolumeClaim:
             claimName: casdoor-data
