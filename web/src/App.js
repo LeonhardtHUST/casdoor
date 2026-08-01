@@ -711,20 +711,6 @@ class App extends Component {
                   } />
                 ))}
 
-                {/* Legacy admin route redirects */}
-                {Object.entries(RoutePolicy.LEGACY_ADMIN_ROUTE_MAP).map(([oldPath, newPath]) => (
-                  <Route key={oldPath} exact path={oldPath} render={() => {
-                    if (!this.state.account) {
-                      const redirectUrl = encodeURIComponent(oldPath);
-                      return <Redirect to={`/login?returnUrl=${redirectUrl}`} />;
-                    }
-                    if (!RoutePolicy.isGlobalAdmin(this.state.account)) {
-                      return <Redirect to={Conf.PortalBasePath} />;
-                    }
-                    return <Redirect to={newPath} />;
-                  }} />
-                ))}
-
                 {/* Fallback to original ManagementPage for non-prefixed paths */}
                 <Route path="" render={() =>
                   <ManagementPage
