@@ -25,7 +25,7 @@ describe("Login test", () => {
     cy.get(selector.username).type("admin");
     cy.get(selector.password).type("123");
     cy.get(selector.loginButton).click();
-    cy.url().should("eq", "http://localhost:7001/");
+    cy.url().should("eq", "http://localhost:7001/admin");
   });
 
   it("Login failed", () => {

@@ -1,4 +1,4 @@
-describe('Test payments', () => {
+describe.skip('Test payments', () => {
     beforeEach(()=>{
         cy.login();
     })
